@@ -2,7 +2,7 @@
 #include <FastLED.h>
 #include <WiFi.h>
 #include <ArduinoOTA.h>
-#include "secrets.h" // Include the secrets file
+#include "secrets.h" // Include the secrets file for Wi-Fi and OTA credentials
 
 // Pin definitions
 #define LED_PIN 18        // GPIO 18 for LED data line
@@ -28,21 +28,24 @@ int cyclotronLights[4][2] = {
 int fadeDuration = 1000; // Duration for fade up and down in milliseconds
 int gapDuration = 0;     // Duration for gap between lights in milliseconds
 
+// Enum for cyclotron direction
 enum CyclotronDirection { Clockwise, AntiClockwise };
 CyclotronDirection direction = Clockwise; // Initial direction
 
+// Enum for animation modes
 enum AnimationMode { Mode1984, ModeAfterlife, ModeFrozenEmpire };
 AnimationMode animationMode = Mode1984; // Default animation mode
 
-int afterlifeLedCount = 4; // Number of LEDs in the chase for Afterlife mode
-int maxBrightness = 255;
-int minBrightness = 1; // Default minimum brightness set to 1
-int chaseSpeed = 4;    // Default chase speed in milliseconds per step (1 to 255, lower values are faster, higher values are slower)
+// User-defined variables for Afterlife and Frozen Empire modes
+int afterlifeLedCount = 4;              // Number of LEDs in the chase for Afterlife mode
+int maxBrightness = 255;                // Maximum brightness
+int minBrightness = 1;                  // Default minimum brightness set to 1
+int chaseSpeed = 4;                     // Default chase speed in milliseconds per step (1 to 255, lower values are faster, higher values are slower)
 
-int frozenEmpireLedCount = 8; // Default number of LEDs in the chase for Frozen Empire mode
-int frozenEmpireMinBrightness = 5; // Default minimum brightness for Frozen Empire mode
-int frozenEmpireChaseSpeed = 13;    // Default chase speed for Frozen Empire mode (double the afterlife speed)
-CRGB frozenEmpireColor = CRGB::White; // Default color for Frozen Empire mode
+int frozenEmpireLedCount = 8;           // Default number of LEDs in the chase for Frozen Empire mode
+int frozenEmpireMinBrightness = 5;      // Default minimum brightness for Frozen Empire mode
+int frozenEmpireChaseSpeed = 8;         // Default chase speed for Frozen Empire mode (double the afterlife speed)
+CRGB frozenEmpireColor = CRGB::White;   // Default color for Frozen Empire mode
 
 const int maxRetries = 5; // Maximum number of retries for Wi-Fi connection
 int connectionAttempts = 0;
@@ -67,25 +70,29 @@ void runMainFunctions();
 void setup() {
     Serial.begin(115200);
 
-    pinMode(SWITCH_PIN, INPUT_PULLUP); // Set up the direction switch pin with internal pull-up resistor
-    pinMode(SWITCH1_PIN, INPUT_PULLUP); // Set up the first switch pin with internal pull-up resistor
-    pinMode(SWITCH2_PIN, INPUT_PULLUP); // Set up the second switch pin with internal pull-up resistor
+    // Set up the direction switch pin with internal pull-up resistor
+    pinMode(SWITCH_PIN, INPUT_PULLUP);
+    // Set up the mode switch pins with internal pull-up resistor
+    pinMode(SWITCH1_PIN, INPUT_PULLUP);
+    pinMode(SWITCH2_PIN, INPUT_PULLUP);
 
     // Read the switch states at startup to set the animation mode
     bool switch1State = digitalRead(SWITCH1_PIN);
     bool switch2State = digitalRead(SWITCH2_PIN);
 
     if (!switch1State && !switch2State) {
-        animationMode = Mode1984;
+        animationMode = Mode1984; // Both switches OFF
     } else if (switch1State && !switch2State) {
-        animationMode = ModeAfterlife;
+        animationMode = ModeAfterlife; // Switch 1 ON, Switch 2 OFF
     } else if (!switch1State && switch2State) {
-        animationMode = ModeFrozenEmpire;
+        animationMode = ModeFrozenEmpire; // Switch 1 OFF, Switch 2 ON
     }
 
+    // Initialize FastLED
     FastLED.addLeds<LED_TYPE, LED_PIN, COLOR_ORDER>(leds, NUM_LEDS).setCorrection(TypicalLEDStrip);
     FastLED.setBrightness(BRIGHTNESS);
 
+    // Connect to Wi-Fi and setup OTA
     connectToWiFi();
     setupOTA();
 }
@@ -93,13 +100,14 @@ void setup() {
 void loop() {
     // Read the direction switch state
     if (digitalRead(SWITCH_PIN) == LOW) {
-        direction = AntiClockwise;
+        direction = AntiClockwise; // Switch LOW: AntiClockwise
     } else {
-        direction = Clockwise;
+        direction = Clockwise; // Switch HIGH: Clockwise
     }
 
     unsigned long currentMillis = millis();
 
+    // Attempt to reconnect to Wi-Fi if disconnected and retry attempts are allowed
     if (WiFi.status() != WL_CONNECTED && shouldAttemptConnection) {
         if (currentMillis - previousMillis >= interval) {
             previousMillis = currentMillis;
@@ -109,7 +117,8 @@ void loop() {
         ArduinoOTA.handle(); // Handle OTA only when Wi-Fi is connected
     }
 
-    runMainFunctions(); // Run your main functions
+    // Run the selected animation
+    runMainFunctions();
 }
 
 void connectToWiFi() {
@@ -143,7 +152,8 @@ void connectToWiFi() {
 }
 
 void setupOTA() {
-    ArduinoOTA.setPassword(otaPassword); // Set OTA password
+    // Set OTA password
+    ArduinoOTA.setPassword(otaPassword);
 
     ArduinoOTA.onStart([]() {
         String type;
@@ -183,11 +193,11 @@ void setupOTA() {
 
 void runMainFunctions() {
     if (animationMode == Mode1984) {
-        run1984Animation();
+        run1984Animation(); // Run 1984 animation
     } else if (animationMode == ModeAfterlife) {
-        runAfterlifeAnimation();
+        runAfterlifeAnimation(); // Run Afterlife animation
     } else if (animationMode == ModeFrozenEmpire) {
-        runFrozenEmpireAnimation();
+        runFrozenEmpireAnimation(); // Run Frozen Empire animation
     }
 
     FastLED.show();

@@ -1,321 +1,123 @@
-#include <Arduino.h>
-#include <FastLED.h>
-#include <WiFi.h>
-#include <ArduinoOTA.h>
-#include "secrets.h" // Include the secrets file for Wi-Fi and OTA credentials
+# Ghostbusters Proton Pack Project
 
-// Pin definitions
-#define LED_PIN 18        // GPIO 18 for LED data line
-#define SWITCH_PIN 15     // GPIO 15 for the toggle switch to control direction
-#define SWITCH1_PIN 16    // GPIO 16 for the first toggle switch
-#define SWITCH2_PIN 17    // GPIO 17 for the second toggle switch
+## Overview
 
-#define NUM_LEDS 40       // Total number of LEDs
-#define BRIGHTNESS 255    // Maximum brightness of LEDs
-#define LED_TYPE WS2812B  // Type of LED strip
-#define COLOR_ORDER GRB   // Color order of the LED strip
+This project aims to create a movie-accurate Ghostbusters Proton Pack using an ESP32-S3 microcontroller and WS2812B LEDs. The pack features multiple animation modes inspired by different Ghostbusters movies and includes Over-the-Air (OTA) updates for easy firmware updates.
 
-CRGB leds[NUM_LEDS];
+## Features
 
-// Cyclotron light parameters for 1984 mode
-int cyclotronLights[4][2] = {
-    {0, 5},    // Starting position and length of the first light
-    {10, 5},   // Second light
-    {20, 5},   // Third light
-    {30, 5}    // Fourth light
-};
+- **1984 Pack Mode**: Classic cyclotron lights animation.
+- **Afterlife Pack Mode**: LED chase animation.
+- **Frozen Empire Pack Mode**: Spark effect animation with customizable colors.
+- **Direction Control**: Toggle switch to change the direction of the animations.
+- **OTA Updates**: Easily update the firmware over Wi-Fi.
 
-int fadeDuration = 1000; // Duration for fade up and down in milliseconds
-int gapDuration = 0;     // Duration for gap between lights in milliseconds
+## Getting Started
 
-// Enum for cyclotron direction
-enum CyclotronDirection { Clockwise, AntiClockwise };
-CyclotronDirection direction = Clockwise; // Initial direction
+### Prerequisites
 
-// Enum for animation modes
-enum AnimationMode { Mode1984, ModeAfterlife, ModeFrozenEmpire };
-AnimationMode animationMode = Mode1984; // Default animation mode
+- ESP32-S3 DevKitC
+- WS2812B LED strip or ring
+- Three toggle switches
+- Arduino IDE or PlatformIO with VS Code
+- Wi-Fi network for OTA updates
 
-// User-defined variables for Afterlife and Frozen Empire modes
-int afterlifeLedCount = 4;              // Number of LEDs in the chase for Afterlife mode
-int maxBrightness = 255;                // Maximum brightness
-int minBrightness = 1;                  // Default minimum brightness set to 1
-int chaseSpeed = 4;                     // Default chase speed in milliseconds per step (1 to 255, lower values are faster, higher values are slower)
+### Hardware Setup
 
-int frozenEmpireLedCount = 8;           // Default number of LEDs in the chase for Frozen Empire mode
-int frozenEmpireMinBrightness = 5;      // Default minimum brightness for Frozen Empire mode
-int frozenEmpireChaseSpeed = 8;         // Default chase speed for Frozen Empire mode (double the afterlife speed)
-CRGB frozenEmpireColor = CRGB::White;   // Default color for Frozen Empire mode
+1. **Connect the WS2812B LEDs**:
+    - **Data In**: Connect to GPIO 18 on the ESP32-S3.
+    - **5V**: Connect to a 5V power source.
+    - **GND**: Connect to the ground (GND) on the ESP32-S3.
 
-const int maxRetries = 5; // Maximum number of retries for Wi-Fi connection
-int connectionAttempts = 0;
-bool shouldAttemptConnection = true;
+2. **Connect the Direction Toggle Switch**:
+    - **One side**: Connect to GPIO 15.
+    - **Other side**: Connect to GND.
 
-unsigned long previousMillis = 0;
-const long interval = 60000; // 60 seconds interval for retrying Wi-Fi connection
+3. **Connect the Mode Toggle Switches**:
+    - **Switch 1**: Connect to GPIO 16 and GND.
+    - **Switch 2**: Connect to GPIO 17 and GND.
 
-unsigned long lastUpdate = 0;
-int currentLight = 0;
-int fadeDirection = 1;
-int fadeValue = 0;
+### Software Setup
 
-// Function declarations
-void connectToWiFi();
-void setupOTA();
-void run1984Animation();
-void runAfterlifeAnimation();
-void runFrozenEmpireAnimation();
-void runMainFunctions();
+1. **Clone the repository**:
+    ```sh
+    git clone https://github.com/yourusername/proton-pack.git
+    cd proton-pack
+    ```
 
-void setup() {
-    Serial.begin(115200);
+2. **Install dependencies**:
+    - Install the FastLED library in your Arduino IDE or PlatformIO.
 
-    // Set up the direction switch pin with internal pull-up resistor
-    pinMode(SWITCH_PIN, INPUT_PULLUP);
-    // Set up the mode switch pins with internal pull-up resistor
-    pinMode(SWITCH1_PIN, INPUT_PULLUP);
-    pinMode(SWITCH2_PIN, INPUT_PULLUP);
+3. **Edit `secrets.h`**:
+    - Create a file named `secrets.h` in the `include` directory.
+    - Add your Wi-Fi SSID, password, and OTA password:
+        ```cpp
+        #define ssid "your-SSID"
+        #define password "your-PASSWORD"
+        #define otaPassword "your-OTA-PASSWORD"
+        ```
 
-    // Read the switch states at startup to set the animation mode
-    bool switch1State = digitalRead(SWITCH1_PIN);
-    bool switch2State = digitalRead(SWITCH2_PIN);
+4. **Edit `platformio.ini`** (if using PlatformIO):
+    ```ini
+    [env:esp32dev]
+    platform = espressif32
+    board = esp32-s3-devkitc-1
+    framework = arduino
+    upload_port = COM3  # Change to your actual port
+    monitor_speed = 115200
 
-    if (!switch1State && !switch2State) {
-        animationMode = Mode1984; // Both switches OFF
-    } else if (switch1State && !switch2State) {
-        animationMode = ModeAfterlife; // Switch 1 ON, Switch 2 OFF
-    } else if (!switch1State && switch2State) {
-        animationMode = ModeFrozenEmpire; // Switch 1 OFF, Switch 2 ON
-    }
+    build_flags =
+      -DSSID=\"${ssid}\"
+      -DPASSWORD=\"${password}\"
+      -DOTA_PASSWORD=\"${otaPassword}\"
+    ```
 
-    // Initialize FastLED
-    FastLED.addLeds<LED_TYPE, LED_PIN, COLOR_ORDER>(leds, NUM_LEDS).setCorrection(TypicalLEDStrip);
-    FastLED.setBrightness(BRIGHTNESS);
+5. **Build and upload the firmware**:
+    - Using Arduino IDE or PlatformIO, compile and upload the firmware to your ESP32-S3.
 
-    // Connect to Wi-Fi and setup OTA
-    connectToWiFi();
-    setupOTA();
-}
+## Usage
 
-void loop() {
-    // Read the direction switch state
-    if (digitalRead(SWITCH_PIN) == LOW) {
-        direction = AntiClockwise; // Switch LOW: AntiClockwise
-    } else {
-        direction = Clockwise; // Switch HIGH: Clockwise
-    }
+1. **Power on the device**:
+    - Connect the ESP32-S3 to a power source.
 
-    unsigned long currentMillis = millis();
+2. **Select Mode**:
+    - Use the mode toggle switches to select the animation mode:
+        - **1984 Pack Mode**: Both switches OFF
+        - **Afterlife Pack Mode**: Switch 1 ON, Switch 2 OFF
+        - **Frozen Empire Pack Mode**: Switch 1 OFF, Switch 2 ON
 
-    // Attempt to reconnect to Wi-Fi if disconnected and retry attempts are allowed
-    if (WiFi.status() != WL_CONNECTED && shouldAttemptConnection) {
-        if (currentMillis - previousMillis >= interval) {
-            previousMillis = currentMillis;
-            connectToWiFi();
-        }
-    } else if (WiFi.status() == WL_CONNECTED) {
-        ArduinoOTA.handle(); // Handle OTA only when Wi-Fi is connected
-    }
+3. **Control Direction**:
+    - Use the direction toggle switch to change the direction of the animations:
+        - **Clockwise**: Switch HIGH
+        - **AntiClockwise**: Switch LOW
 
-    // Run the selected animation
-    runMainFunctions();
-}
+## OTA Updates
 
-void connectToWiFi() {
-    if (connectionAttempts >= maxRetries) {
-        Serial.println("Max retries reached. Stopping further connection attempts.");
-        shouldAttemptConnection = false;
-        return;
-    }
+1. **Ensure Wi-Fi Connection**:
+    - Ensure the ESP32-S3 is connected to the Wi-Fi network using the credentials in `secrets.h`.
 
-    Serial.print("Connecting to WiFi... Attempt ");
-    Serial.println(connectionAttempts + 1);
-    WiFi.begin(ssid, password);
+2. **Perform OTA Update**:
+    - Use the Arduino IDE or PlatformIO to perform an OTA update:
+        - In Arduino IDE: Go to `Sketch` > `Upload Using OTA`.
+        - In PlatformIO: Use the `Upload` button or run the `platformio run --target upload --upload-port IP_ADDRESS` command.
 
-    unsigned long startAttemptTime = millis();
+## Documentation
 
-    // Attempt to connect for 10 seconds
-    while (WiFi.status() != WL_CONNECTED && millis() - startAttemptTime < 10000) {
-        delay(500);
-        Serial.print(".");
-    }
+- [Configuration Guide](configuration_guide.md)
+- [User Guide](user_guide.md)
+- [Wiring Guide](wiring_guide.md)
+- [Changelog](CHANGELOG.md)
 
-    if (WiFi.status() == WL_CONNECTED) {
-        Serial.println("\nConnected to WiFi");
-        Serial.print("IP address: ");
-        Serial.println(WiFi.localIP());
-        connectionAttempts = 0; // Reset attempts on successful connection
-    } else {
-        Serial.println("\nFailed to connect to WiFi");
-        connectionAttempts++;
-    }
-}
+## License
 
-void setupOTA() {
-    // Set OTA password
-    ArduinoOTA.setPassword(otaPassword);
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
-    ArduinoOTA.onStart([]() {
-        String type;
-        if (ArduinoOTA.getCommand() == U_FLASH) {
-            type = "sketch";
-        } else { // U_SPIFFS
-            type = "filesystem";
-        }
-        Serial.println("Start updating " + type);
-    });
+## Acknowledgements
 
-    ArduinoOTA.onEnd([]() {
-        Serial.println("\nEnd");
-    });
+- This project uses the FastLED library.
+- Thanks to the open-source community for their contributions.
 
-    ArduinoOTA.onProgress([](unsigned int progress, unsigned int total) {
-        Serial.printf("Progress: %u%%\r", (progress / (total / 100)));
-    });
+## Contact
 
-    ArduinoOTA.onError([](ota_error_t error) {
-        Serial.printf("Error[%u]: ", error);
-        if (error == OTA_AUTH_ERROR) {
-            Serial.println("Auth Failed");
-        } else if (error == OTA_BEGIN_ERROR) {
-            Serial.println("Begin Failed");
-        } else if (error == OTA_CONNECT_ERROR) {
-            Serial.println("Connect Failed");
-        } else if (error == OTA_RECEIVE_ERROR) {
-            Serial.println("Receive Failed");
-        } else if (error == OTA_END_ERROR) {
-            Serial.println("End Failed");
-        }
-    });
+For more information, contact [your name or email].
 
-    ArduinoOTA.begin();
-}
-
-void runMainFunctions() {
-    if (animationMode == Mode1984) {
-        run1984Animation(); // Run 1984 animation
-    } else if (animationMode == ModeAfterlife) {
-        runAfterlifeAnimation(); // Run Afterlife animation
-    } else if (animationMode == ModeFrozenEmpire) {
-        runFrozenEmpireAnimation(); // Run Frozen Empire animation
-    }
-
-    FastLED.show();
-}
-
-void run1984Animation() {
-    unsigned long currentMillis = millis();
-
-    // Calculate fade value
-    int delta = (fadeDuration / 256);
-    if (currentMillis - lastUpdate > delta) {
-        lastUpdate = currentMillis;
-        fadeValue += fadeDirection;
-
-        // Reverse fade direction at the end points
-        if (fadeValue >= 255 || fadeValue <= 0) {
-            fadeDirection *= -1;
-            if (fadeValue <= 0) {
-                // Move to the next light in the sequence
-                if (direction == Clockwise) {
-                    currentLight = (currentLight + 1) % 4;
-                } else {
-                    currentLight = (currentLight - 1 + 4) % 4;
-                }
-                if (currentLight == 0 && gapDuration > 0) {
-                    delay(gapDuration); // Only delay if gapDuration is greater than 0
-                }
-            }
-        }
-    }
-
-    // Set LEDs for the current light
-    for (int i = 0; i < 4; i++) {
-        int startPos = cyclotronLights[i][0];
-        int length = cyclotronLights[i][1];
-        for (int j = startPos; j < startPos + length; j++) {
-            if (i == currentLight) {
-                leds[j] = CRGB::Red;
-                leds[j].fadeToBlackBy(255 - fadeValue);
-            } else {
-                leds[j] = CRGB::Black;
-            }
-        }
-    }
-}
-
-void runAfterlifeAnimation() {
-    unsigned long currentMillis = millis();
-    static unsigned long lastUpdate = 0;
-    static int headPos = 0;
-
-    // Update the head position for the chase effect
-    if (currentMillis - lastUpdate > chaseSpeed) {
-        lastUpdate = currentMillis;
-
-        if (direction == Clockwise) {
-            headPos = (headPos + 1) % NUM_LEDS;
-        } else {
-            headPos = (headPos - 1 + NUM_LEDS) % NUM_LEDS;
-        }
-    }
-
-    // Set all LEDs to black
-    for (int i = 0; i < NUM_LEDS; i++) {
-        leds[i] = CRGB::Black;
-    }
-
-    // Illuminate LEDs based on the chase effect
-    for (int i = 0; i < afterlifeLedCount; i++) {
-        int pos;
-        if (direction == Clockwise) {
-            pos = (headPos - i + NUM_LEDS) % NUM_LEDS;
-        } else {
-            pos = (headPos + i + NUM_LEDS) % NUM_LEDS;
-        }
-        int brightness = maxBrightness - ((maxBrightness - minBrightness) / afterlifeLedCount) * i;
-        leds[pos] = CRGB::Red;
-        leds[pos].fadeLightBy(255 - brightness);
-    }
-}
-
-void runFrozenEmpireAnimation() {
-    unsigned long currentMillis = millis();
-    static unsigned long lastUpdate = 0;
-    static int headPos = 0;
-
-    // Update the head position for the chase effect
-    if (currentMillis - lastUpdate > frozenEmpireChaseSpeed) {
-        lastUpdate = currentMillis;
-
-        if (direction == Clockwise) {
-            headPos = (headPos + 1) % NUM_LEDS;
-        } else {
-            headPos = (headPos - 1 + NUM_LEDS) % NUM_LEDS;
-        }
-    }
-
-    // Set all LEDs to black
-    for (int i = 0; i < NUM_LEDS; i++) {
-        leds[i] = CRGB::Black;
-    }
-
-    // Illuminate LEDs based on the chase effect
-    for (int i = 0; i < frozenEmpireLedCount; i++) {
-        int pos;
-        if (direction == Clockwise) {
-            pos = (headPos - i + NUM_LEDS) % NUM_LEDS;
-        } else {
-            pos = (headPos + i + NUM_LEDS) % NUM_LEDS;
-        }
-
-        // Calculate the brightness based on the distance from the center
-        int centerIndex = frozenEmpireLedCount / 2;
-        int distanceFromCenter = abs(i - centerIndex);
-        int brightness = maxBrightness - ((maxBrightness - frozenEmpireMinBrightness) / centerIndex) * distanceFromCenter;
-
-        // Use user-defined color for sparks effect
-        leds[pos] = frozenEmpireColor;
-        leds[pos].fadeLightBy(255 - brightness);
-    }
-}
