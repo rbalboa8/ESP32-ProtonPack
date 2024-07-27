@@ -4,3 +4,5 @@
 .vscode/launch.json
 .vscode/ipch
 .ChatGPT-ArduinoCodeGenerationNotes.txt
+.include/secrets.h
+.upload_params.ini
