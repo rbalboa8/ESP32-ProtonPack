@@ -6,16 +6,15 @@
 
 // Pin definitions
 #define LED_PIN 18        // GPIO 18 for LED data line
-#define SWITCH_PIN 17     // GPIO 17 for the toggle switch to control direction
-#define MODE_PIN 16       // GPIO 16 for the toggle switch to select animation mode
+#define SWITCH_PIN 15     // GPIO 15 for the toggle switch to control direction
+#define SWITCH1_PIN 16    // GPIO 16 for the first toggle switch
+#define SWITCH2_PIN 17    // GPIO 17 for the second toggle switch
 
-// LED configuration
 #define NUM_LEDS 40       // Total number of LEDs
 #define BRIGHTNESS 255    // Maximum brightness of LEDs
 #define LED_TYPE WS2812B  // Type of LED strip
 #define COLOR_ORDER GRB   // Color order of the LED strip
 
-// Create an array of LED objects
 CRGB leds[NUM_LEDS];
 
 // Cyclotron light parameters for 1984 mode
@@ -32,13 +31,18 @@ int gapDuration = 0;     // Duration for gap between lights in milliseconds
 enum CyclotronDirection { Clockwise, AntiClockwise };
 CyclotronDirection direction = Clockwise; // Initial direction
 
-enum AnimationMode { Mode1984, ModeAfterlife };
+enum AnimationMode { Mode1984, ModeAfterlife, ModeFrozenEmpire };
 AnimationMode animationMode = Mode1984; // Default animation mode
 
 int afterlifeLedCount = 4; // Number of LEDs in the chase for Afterlife mode
 int maxBrightness = 255;
 int minBrightness = 1; // Default minimum brightness set to 1
 int chaseSpeed = 4;    // Default chase speed in milliseconds per step (1 to 255, lower values are faster, higher values are slower)
+
+int frozenEmpireLedCount = 8; // Default number of LEDs in the chase for Frozen Empire mode
+int frozenEmpireMinBrightness = 5; // Default minimum brightness for Frozen Empire mode
+int frozenEmpireChaseSpeed = 13;    // Default chase speed for Frozen Empire mode (double the afterlife speed)
+CRGB frozenEmpireColor = CRGB::White; // Default color for Frozen Empire mode
 
 const int maxRetries = 5; // Maximum number of retries for Wi-Fi connection
 int connectionAttempts = 0;
@@ -57,19 +61,26 @@ void connectToWiFi();
 void setupOTA();
 void run1984Animation();
 void runAfterlifeAnimation();
+void runFrozenEmpireAnimation();
 void runMainFunctions();
 
 void setup() {
     Serial.begin(115200);
 
     pinMode(SWITCH_PIN, INPUT_PULLUP); // Set up the direction switch pin with internal pull-up resistor
-    pinMode(MODE_PIN, INPUT_PULLUP);   // Set up the mode switch pin with internal pull-up resistor
+    pinMode(SWITCH1_PIN, INPUT_PULLUP); // Set up the first switch pin with internal pull-up resistor
+    pinMode(SWITCH2_PIN, INPUT_PULLUP); // Set up the second switch pin with internal pull-up resistor
 
-    // Read the mode switch at startup to set the animation mode
-    if (digitalRead(MODE_PIN) == LOW) {
-        animationMode = ModeAfterlife;
-    } else {
+    // Read the switch states at startup to set the animation mode
+    bool switch1State = digitalRead(SWITCH1_PIN);
+    bool switch2State = digitalRead(SWITCH2_PIN);
+
+    if (!switch1State && !switch2State) {
         animationMode = Mode1984;
+    } else if (switch1State && !switch2State) {
+        animationMode = ModeAfterlife;
+    } else if (!switch1State && switch2State) {
+        animationMode = ModeFrozenEmpire;
     }
 
     FastLED.addLeds<LED_TYPE, LED_PIN, COLOR_ORDER>(leds, NUM_LEDS).setCorrection(TypicalLEDStrip);
@@ -80,6 +91,13 @@ void setup() {
 }
 
 void loop() {
+    // Read the direction switch state
+    if (digitalRead(SWITCH_PIN) == LOW) {
+        direction = AntiClockwise;
+    } else {
+        direction = Clockwise;
+    }
+
     unsigned long currentMillis = millis();
 
     if (WiFi.status() != WL_CONNECTED && shouldAttemptConnection) {
@@ -164,17 +182,17 @@ void setupOTA() {
 }
 
 void runMainFunctions() {
-    // Your real-time code here
     if (animationMode == Mode1984) {
         run1984Animation();
     } else if (animationMode == ModeAfterlife) {
         runAfterlifeAnimation();
+    } else if (animationMode == ModeFrozenEmpire) {
+        runFrozenEmpireAnimation();
     }
 
     FastLED.show();
 }
 
-// Function to run the 1984 animation
 void run1984Animation() {
     unsigned long currentMillis = millis();
 
@@ -216,7 +234,6 @@ void run1984Animation() {
     }
 }
 
-// Function to run the Afterlife animation
 void runAfterlifeAnimation() {
     unsigned long currentMillis = millis();
     static unsigned long lastUpdate = 0;
@@ -248,6 +265,47 @@ void runAfterlifeAnimation() {
         }
         int brightness = maxBrightness - ((maxBrightness - minBrightness) / afterlifeLedCount) * i;
         leds[pos] = CRGB::Red;
+        leds[pos].fadeLightBy(255 - brightness);
+    }
+}
+
+void runFrozenEmpireAnimation() {
+    unsigned long currentMillis = millis();
+    static unsigned long lastUpdate = 0;
+    static int headPos = 0;
+
+    // Update the head position for the chase effect
+    if (currentMillis - lastUpdate > frozenEmpireChaseSpeed) {
+        lastUpdate = currentMillis;
+
+        if (direction == Clockwise) {
+            headPos = (headPos + 1) % NUM_LEDS;
+        } else {
+            headPos = (headPos - 1 + NUM_LEDS) % NUM_LEDS;
+        }
+    }
+
+    // Set all LEDs to black
+    for (int i = 0; i < NUM_LEDS; i++) {
+        leds[i] = CRGB::Black;
+    }
+
+    // Illuminate LEDs based on the chase effect
+    for (int i = 0; i < frozenEmpireLedCount; i++) {
+        int pos;
+        if (direction == Clockwise) {
+            pos = (headPos - i + NUM_LEDS) % NUM_LEDS;
+        } else {
+            pos = (headPos + i + NUM_LEDS) % NUM_LEDS;
+        }
+
+        // Calculate the brightness based on the distance from the center
+        int centerIndex = frozenEmpireLedCount / 2;
+        int distanceFromCenter = abs(i - centerIndex);
+        int brightness = maxBrightness - ((maxBrightness - frozenEmpireMinBrightness) / centerIndex) * distanceFromCenter;
+
+        // Use user-defined color for sparks effect
+        leds[pos] = frozenEmpireColor;
         leds[pos].fadeLightBy(255 - brightness);
     }
 }
