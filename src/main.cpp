@@ -8,9 +8,8 @@
 #define CYCLOTRON_CAKE_LED_PIN 19    // GPIO 19 for the first LED ring data line
 #define CYCLOTRON_LID_LED_PIN 18     // GPIO 18 for the second LED ring data line
 #define CYCLOTRON_DIRECTION_SWITCH_PIN 15 // GPIO 15 for the toggle switch to control direction
-#define SWITCH1_PIN 16               // GPIO 16 for the first toggle switch
-#define SWITCH2_PIN 17               // GPIO 17 for the second toggle switch
 #define LID_STATE_PIN 14             // GPIO 14 for the toggle switch to control cyclotron lid state
+#define MODE_SELECT_PIN 17           // GPIO 17 for the analog mode select pin
 
 #define NUM_LEDS_CYCLOTRON_CAKE 45   // Total number of LEDs for the first ring
 #define NUM_LEDS_CYCLOTRON_LID 40    // Total number of LEDs for the second ring
@@ -85,29 +84,15 @@ void runFrozenEmpireAnimation(CRGB* leds, int numLeds);
 void runMainFunctions();
 void updateLidState();
 void clearLEDs(CRGB* leds, int numLeds);
+void updateAnimationMode();
 
 void setup() {
-    // Serial.begin(115200); // Commented out for now
+    Serial.begin(115200); // Enable serial debugging
 
     // Set up the direction switch pin with internal pull-up resistor
     pinMode(CYCLOTRON_DIRECTION_SWITCH_PIN, INPUT_PULLUP);
     // Set up the mode switch pins with internal pull-up resistor
-    pinMode(SWITCH1_PIN, INPUT_PULLUP);
-    pinMode(SWITCH2_PIN, INPUT_PULLUP);
-    // Set up the lid state switch pin with internal pull-up resistor
     pinMode(LID_STATE_PIN, INPUT_PULLUP);
-
-    // Read the switch states at startup to set the animation mode
-    bool switch1State = digitalRead(SWITCH1_PIN);
-    bool switch2State = digitalRead(SWITCH2_PIN);
-
-    if (!switch1State && !switch2State) {
-        animationMode = Mode1984; // Both switches OFF
-    } else if (switch1State && !switch2State) {
-        animationMode = ModeAfterlife; // Switch 1 ON, Switch 2 OFF
-    } else if (!switch1State && switch2State) {
-        animationMode = ModeFrozenEmpire; // Switch 1 OFF, Switch 2 ON
-    }
 
     // Initialize FastLED
     FastLED.addLeds<LED_TYPE, CYCLOTRON_CAKE_LED_PIN, COLOR_ORDER>(cyclotronCakeLights, NUM_LEDS_CYCLOTRON_CAKE).setCorrection(TypicalLEDStrip);
@@ -117,6 +102,9 @@ void setup() {
     // Connect to Wi-Fi and setup OTA
     connectToWiFi();
     setupOTA();
+
+    // Read initial mode switch state
+    updateAnimationMode();
 }
 
 void loop() {
@@ -148,13 +136,13 @@ void loop() {
 
 void connectToWiFi() {
     if (connectionAttempts >= maxRetries) {
-        // Serial.println("Max retries reached. Stopping further connection attempts."); // Commented out for now
+        // Serial.println("Max retries reached. Stopping further connection attempts."); // Enable serial debugging
         shouldAttemptConnection = false;
         return;
     }
 
-    // Serial.print("Connecting to WiFi... Attempt "); // Commented out for now
-    // Serial.println(connectionAttempts + 1); // Commented out for now
+    // Serial.print("Connecting to WiFi... Attempt "); // Enable serial debugging
+    // Serial.println(connectionAttempts + 1); // Enable serial debugging
     WiFi.begin(ssid, password);
 
     unsigned long startAttemptTime = millis();
@@ -162,16 +150,16 @@ void connectToWiFi() {
     // Attempt to connect for 10 seconds
     while (WiFi.status() != WL_CONNECTED && millis() - startAttemptTime < 10000) {
         delay(500);
-        // Serial.print("."); // Commented out for now
+        // Serial.print("."); // Enable serial debugging
     }
 
     if (WiFi.status() == WL_CONNECTED) {
-        // Serial.println("\nConnected to WiFi"); // Commented out for now
-        // Serial.print("IP address: "); // Commented out for now
-        // Serial.println(WiFi.localIP()); // Commented out for now
+        // Serial.println("\nConnected to WiFi"); // Enable serial debugging
+        // Serial.print("IP address: "); // Enable serial debugging
+        // Serial.println(WiFi.localIP()); // Enable serial debugging
         connectionAttempts = 0; // Reset attempts on successful connection
     } else {
-        // Serial.println("\nFailed to connect to WiFi"); // Commented out for now
+        // Serial.println("\nFailed to connect to WiFi"); // Enable serial debugging
         connectionAttempts++;
     }
 }
@@ -187,29 +175,29 @@ void setupOTA() {
         } else { // U_SPIFFS
             type = "filesystem";
         }
-        // Serial.println("Start updating " + type); // Commented out for now
+        // Serial.println("Start updating " + type); // Enable serial debugging
     });
 
     ArduinoOTA.onEnd([]() {
-        // Serial.println("\nEnd"); // Commented out for now
+        // Serial.println("\nEnd"); // Enable serial debugging
     });
 
     ArduinoOTA.onProgress([](unsigned int progress, unsigned int total) {
-        // Serial.printf("Progress: %u%%\r", (progress / (total / 100))); // Commented out for now
+        // Serial.printf("Progress: %u%%\r", (progress / (total / 100))); // Enable serial debugging
     });
 
     ArduinoOTA.onError([](ota_error_t error) {
-        // Serial.printf("Error[%u]: ", error); // Commented out for now
+        // Serial.printf("Error[%u]: ", error); // Enable serial debugging
         if (error == OTA_AUTH_ERROR) {
-            // Serial.println("Auth Failed"); // Commented out for now
+            // Serial.println("Auth Failed"); // Enable serial debugging
         } else if (error == OTA_BEGIN_ERROR) {
-            // Serial.println("Begin Failed"); // Commented out for now
+            // Serial.println("Begin Failed"); // Enable serial debugging
         } else if (error == OTA_CONNECT_ERROR) {
-            // Serial.println("Connect Failed"); // Commented out for now
+            // Serial.println("Connect Failed"); // Enable serial debugging
         } else if (error == OTA_RECEIVE_ERROR) {
-            // Serial.println("Receive Failed"); // Commented out for now
+            // Serial.println("Receive Failed"); // Enable serial debugging
         } else if (error == OTA_END_ERROR) {
-            // Serial.println("End Failed"); // Commented out for now
+            // Serial.println("End Failed"); // Enable serial debugging
         }
     });
 
@@ -222,10 +210,10 @@ void updateLidState() {
     // Update the lid state based on the real-time pin reading
     if (digitalRead(LID_STATE_PIN) == LOW) {
         newLidState = CyclotronLidOn; // Switch LOW: CyclotronLidOn
-        // Serial.println("CyclotronLidState: ON"); // Commented out for now
+        // Serial.println("CyclotronLidState: ON"); // Enable serial debugging
     } else {
         newLidState = CyclotronLidOff; // Switch HIGH: CyclotronLidOff
-        // Serial.println("CyclotronLidState: OFF"); // Commented out for now
+        // Serial.println("CyclotronLidState: OFF"); // Enable serial debugging
     }
 
     if (newLidState != lidState) {
@@ -233,6 +221,26 @@ void updateLidState() {
         lidState = newLidState;
         clearLEDs((previousLidState == CyclotronLidOn) ? cyclotronCakeLights : cyclotronLidLights, (previousLidState == CyclotronLidOn) ? NUM_LEDS_CYCLOTRON_CAKE : NUM_LEDS_CYCLOTRON_LID);
     }
+}
+
+void updateAnimationMode() {
+    int analogValue = analogRead(MODE_SELECT_PIN);
+    float voltage = analogValue * (3.3 / 4095.0); // Calculate the voltage based on ADC reading
+    // Serial.print("Analog Value: "); // Debugging line
+    // Serial.print(analogValue); // Debugging line
+    // Serial.print(" Voltage: "); // Debugging line
+    // Serial.println(voltage); // Debugging line
+    
+    // Assuming a 12-bit ADC (0 to 4095 range)
+    if (analogValue < 1365) { // 341 scaled to 12-bit
+        animationMode = Mode1984;
+    } else if (analogValue < 2731) { // 682 scaled to 12-bit
+        animationMode = ModeAfterlife;
+    } else {
+        animationMode = ModeFrozenEmpire;
+    }
+    // Serial.print("Animation Mode: "); // Debugging line
+    // Serial.println(animationMode);    // Debugging line
 }
 
 void runMainFunctions() {

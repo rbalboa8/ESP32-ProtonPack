@@ -5,6 +5,42 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+# Changelog
+
+## [1.0.2] - 2024-07-27
+### Added
+- Added functionality to select animation mode (1984, Afterlife, Frozen Empire) using a voltage divider on the analog input pin.
+- Added a new CyclotronLidState to switch between two LED rings for animations.
+- Implemented Frozen Empire animation with user-defined color and other configurable parameters.
+
+### Changed
+- Updated code to use a 12-bit ADC for accurate voltage readings on ESP32.
+- Switched analog input pin for mode selection to GPIO 17.
+- Changed pin definitions:
+  - `CYCLOTRON_CAKE_LED_PIN` to GPIO 19
+  - `CYCLOTRON_LID_LED_PIN` to GPIO 18
+- Changed number of LEDs for Cyclotron Cake and Lid to 45 and 40 respectively.
+- Changed `CyclotronCakeLightsSpacingConfig` and `CyclotronLidLightsSpacingConfig` for better alignment with the new LED counts.
+- Renamed several variables for better readability:
+  - `LED_PIN` to `CYCLOTRON_CAKE_LED_PIN`
+  - `LED_PIN2` to `CYCLOTRON_LID_LED_PIN`
+  - `SWITCH_PIN` to `CYCLOTRON_DIRECTION_SWITCH_PIN`
+  - `NUM_LEDS1` to `NUM_LEDS_CYCLOTRON_CAKE`
+  - `NUM_LEDS2` to `NUM_LEDS_CYCLOTRON_LID`
+  - `CyclotronLidLights1` to `cyclotronCakeLights`
+  - `CyclotronLidLights2` to `cyclotronLidLights`
+  - `cyclotronLightsConfig1` to `cyclotronCakeLightsSpacingConfig`
+  - `cyclotronLightsConfig2` to `cyclotronLidLightsSpacingConfig`
+  - `fadeDuration` to `EightyFourVersionLightsFadeDuration`
+  - `gapDuration` to `EightyFourVersionLightsGapDuration`
+
+### Fixed
+- Fixed issue with mode selection not functioning correctly by adjusting threshold values for the 12-bit ADC.
+- Ensured that the LEDs on the previous ring are cleared when switching between Cyclotron Cake and Lid states.
+
+### Removed
+- Commented out all serial debugging lines to clean up the code for production use.
+
 ## [1.1.0]
 
 ### Added

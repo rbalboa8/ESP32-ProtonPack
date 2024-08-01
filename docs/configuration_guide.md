@@ -9,8 +9,7 @@ This guide provides instructions on how to configure the Proton Pack project. Th
 - Arduino IDE or PlatformIO with VS Code
 - ESP32-S3 DevKitC
 - WS2812B LED strip or ring
-- Two toggle switches for mode selection
-- One toggle switch for direction control
+- Four toggle switches
 - Wi-Fi network for OTA updates
 
 ## Configuration Steps
@@ -51,10 +50,11 @@ This guide provides instructions on how to configure the Proton Pack project. Th
 5. **Configure pins**:
     - Edit the pin definitions in `main.cpp` if necessary:
         ```cpp
-        #define LED_PIN 18        // GPIO for LED data line
-        #define SWITCH_PIN 15     // GPIO for direction toggle switch
-        #define SWITCH1_PIN 16    // GPIO for first mode toggle switch
-        #define SWITCH2_PIN 17    // GPIO for second mode toggle switch
+        #define CYCLOTRON_CAKE_LED_PIN 19     // GPIO for the first LED ring data line
+        #define CYCLOTRON_LID_LED_PIN 18      // GPIO for the second LED ring data line
+        #define CYCLOTRON_DIRECTION_SWITCH_PIN 15 // GPIO for direction toggle switch
+        #define LID_STATE_PIN 14              // GPIO for cyclotron lid state toggle switch
+        #define MODE_SELECT_PIN 17            // GPIO for mode selection voltage divider
         ```
 
 6. **Customize LED settings**:
@@ -62,6 +62,8 @@ This guide provides instructions on how to configure the Proton Pack project. Th
         ```cpp
         int afterlifeLedCount = 4; // Number of LEDs in the chase for Afterlife mode
         int frozenEmpireLedCount = 8; // Number of LEDs in the chase for Frozen Empire mode
+        int chaseSpeed = 4; // Chase speed for Afterlife mode in milliseconds per step
+        int frozenEmpireChaseSpeed = 8; // Chase speed for Frozen Empire mode in milliseconds per step
         CRGB frozenEmpireColor = CRGB::White; // Color for Frozen Empire mode
         ```
 

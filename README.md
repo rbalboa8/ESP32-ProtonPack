@@ -10,6 +10,7 @@ This project aims to create a movie-accurate Ghostbusters Proton Pack using an E
 - **Afterlife Pack Mode**: LED chase animation.
 - **Frozen Empire Pack Mode**: Spark effect animation with customizable colors.
 - **Direction Control**: Toggle switch to change the direction of the animations.
+- **Cyclotron Lid State**: Toggle switch to switch between the Cyclotron Cake lights and the Cyclotron Lid lights.
 - **OTA Updates**: Easily update the firmware over Wi-Fi.
 
 ## Getting Started
@@ -18,24 +19,33 @@ This project aims to create a movie-accurate Ghostbusters Proton Pack using an E
 
 - ESP32-S3 DevKitC
 - WS2812B LED strip or ring
-- Three toggle switches
+- Four toggle switches
 - Arduino IDE or PlatformIO with VS Code
 - Wi-Fi network for OTA updates
 
 ### Hardware Setup
 
 1. **Connect the WS2812B LEDs**:
-    - **Data In**: Connect to GPIO 18 on the ESP32-S3.
-    - **5V**: Connect to a 5V power source.
-    - **GND**: Connect to the ground (GND) on the ESP32-S3.
+    - **Cyclotron Cake Lights (LED Ring 1)**:
+      - **Data In**: Connect to GPIO 19 on the ESP32-S3.
+      - **5V**: Connect to a 5V power source.
+      - **GND**: Connect to the ground (GND) on the ESP32-S3.
+    - **Cyclotron Lid Lights (LED Ring 2)**:
+      - **Data In**: Connect to GPIO 18 on the ESP32-S3.
+      - **5V**: Connect to a 5V power source.
+      - **GND**: Connect to the ground (GND) on the ESP32-S3.
 
 2. **Connect the Direction Toggle Switch**:
     - **One side**: Connect to GPIO 15.
     - **Other side**: Connect to GND.
 
-3. **Connect the Mode Toggle Switches**:
-    - **Switch 1**: Connect to GPIO 16 and GND.
-    - **Switch 2**: Connect to GPIO 17 and GND.
+3. **Connect the Cyclotron Lid State Toggle Switch**:
+    - **One side**: Connect to GPIO 14.
+    - **Other side**: Connect to GND.
+
+4. **Connect the Voltage Divider for Mode Selection**:
+    - **Voltage Divider Output**: Connect to GPIO 17 on the ESP32-S3.
+    - Ensure the voltage divider provides a range of voltages between 0V and 3.3V to the pin.
 
 ### Software Setup
 
@@ -81,15 +91,20 @@ This project aims to create a movie-accurate Ghostbusters Proton Pack using an E
     - Connect the ESP32-S3 to a power source.
 
 2. **Select Mode**:
-    - Use the mode toggle switches to select the animation mode:
-        - **1984 Pack Mode**: Both switches OFF
-        - **Afterlife Pack Mode**: Switch 1 ON, Switch 2 OFF
-        - **Frozen Empire Pack Mode**: Switch 1 OFF, Switch 2 ON
+    - Use the voltage divider connected to GPIO 17 to select the animation mode:
+        - **1984 Pack Mode**: Voltage range 0V to ~1.1V
+        - **Afterlife Pack Mode**: Voltage range ~1.1V to ~2.2V
+        - **Frozen Empire Pack Mode**: Voltage range ~2.2V to 3.3V
 
 3. **Control Direction**:
-    - Use the direction toggle switch to change the direction of the animations:
+    - Use the direction toggle switch (connected to GPIO 15) to change the direction of the animations:
         - **Clockwise**: Switch HIGH
         - **AntiClockwise**: Switch LOW
+
+4. **Cyclotron Lid State**:
+    - Use the Cyclotron Lid state toggle switch (connected to GPIO 14) to switch between the Cyclotron Cake lights and the Cyclotron Lid lights:
+        - **Cyclotron Lid On**: Switch LOW
+        - **Cyclotron Lid Off**: Switch HIGH
 
 ## OTA Updates
 
@@ -120,4 +135,3 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 ## Contact
 
 For more information, contact [your name or email].
-
