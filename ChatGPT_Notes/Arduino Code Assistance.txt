@@ -1,0 +1,43 @@
+Arduino Code Assistance:
+
+1. Do you know what a proton pack is?
+
+2. Can you teach me to code for arduino by helping me create electronics for a movie prop of a ghostbusters proton pack.
+
+3. Using what I have just asked, can we build the code slowly and add features one at a time. Can you describe to me the lighting pattern of the cyclotron of the 1984 proton pack ?
+
+4. Can you exclude all other features for now and just code the cyclotron lights please. For the leds I wish to use ws2812s
+
+5. As I want to add other features that will be running at the same time as the cyclotron can we not use delays please
+
+6. Can we use 5 leds for each of the four cyclotron lights please
+
+7. Can we add a user adjustable variable for the number of leds that make up each cyclotron light?
+
+8. Are you able to create arduino libraries?
+
+9. Can we make this code a state machine with a toggle switch that is monitored to turn the cyclotron lights off and on
+
+10. Can we use an led ring in this project? I would want to allow the user to define the number of lights in the ring, the number of leds that make up each of the four cyclotron lights and which leds on the ring are assigned to each of the four lights?
+
+11. Can we now add the ability for the user to define the direction the the cyclotron lights?
+
+12. Can you describe the difference of the animation of lights on the cyclotron on the 1984 proton pack and the afterlife version of the proton pack?
+
+13. Can you add an addition toggle switch that is monitored to adjust between a 1984 cyclotron animation and a afterlife cyclotron animation?
+
+14. Can we add to the afterlife animation the ability for the user to define the speed of the animation
+
+15. Do you know what part of the proton pack is the powercell?
+
+16. Can you give me an arduino library that I can use to animate 15 ws2812 leds that match the 1984 proton pack powercell only
+
+17. The powercell lights should be blue
+
+18. Can you run the powercell animation with the cyclotron sketch we made earlier?
+
+19. I am interested how did you know and/or decide on the animation of the powercell? Where did you get the information? What did that information you found tell you?
+
+20. Are you able to look at a specific GitHub repository that I name and determine the what it does?
+
+21. Explain to me how I can best allow you to examine an existing arduino project so you can help me modify the code to my liking. I foresee an issue because the code is quite long and uses libraries that have been made specifically for that project

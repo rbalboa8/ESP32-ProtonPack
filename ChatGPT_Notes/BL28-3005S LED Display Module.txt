@@ -1,0 +1,21 @@
+BL28-3005S LED Display Module:
+
+1. Do you know what this electrical component is/does? BL28-3005S 28 Segments LED Display Module
+
+2. That is only partially right. It is a bargraph. It can not display symbols or characters. It is made up of 28 segments, each I single rectangular led. These segments are essentially stacked on top of each other, the short side of each segment created the sides of the stack and the long edge the top/bottom. Visually this allows for led animations along this stack.
+
+3. Do you know how/where this could be used on a proton pack prop build?
+
+4. I would like to use it in the wand
+
+5. I would like to control it via a HT16K33 board
+
+6. That is incorrect, the bargraph comes in common anode and common anode versions and work like a matrix as previously described. An example pinout sheet can be found here http://www.barmeter.com/download/bl28-3005sk04y.pdf. The bargraph will therefore have either 7 cathode/4 anode pins or vice versa. Does that make sense to you?
+
+7. I have found a previously created library for these components. The library defines a number of led animations for the wand prop. Can you have a look at this library please https://github.com/MikeS11/ProtonPack/tree/master/Source/Libraries/GB_Bargraph_Sequence
+
+8. Lines 65 to 94 of the header file for the library define a common anode version of the bargraph. For a common cathode variation of the bargraph the pairs of numbers are simply reversed. For example “{0, 1},” becomes “{1, 0},”. I would like to update the library to include a user defined bargraph, common anode or common cathode, and then the library uses the correct definition. Does that make sense?
+
+9. I have stopped you because I think there is a simpler way and you have slightly misunderstood my idea for this. Let’s take this slower and step by step. Do you see lines 65 to 94 of the header file?
+
+10. Can you call this indexing of the bargraph matrix CommonAnodeBargraph. Then reproduce those lines as an additional indexing of the bargraph matrix but this time with the number pairs reversed as explained previously. Call this on CommonCathodeBargraph. Then make these a user definable option. This way you don’t have to rewrite all the animations and have double the code. The library simply asks the user which version of the bargraph they have, then it uses the appropriate matrix index and the animations work as expected. Is my explanation adequate?

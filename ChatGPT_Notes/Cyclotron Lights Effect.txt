@@ -1,0 +1,139 @@
+Cyclotron Lights Effect:
+
+1. We have been working on various versions of Arduino code for electronics that will be placed in to a 3d printed, movie accurate prop, of the ghostbusters proton pack. I would like to start to write some code for the esp32-s3 to do the same thing. I will be using visual studio code with platform io as my side to do this. we will start with the cyclotron lights. the proton pack will have many "states". some that I can think of now are: OFF, BOOTING, IDLE, FIRING, OVERHEATING and SHUTDOWN. But I will not limit it to this list should I think of further required states to make the prop work. The prop will also have a MENU state where I will be able to change the lights, sounds and functioning of the pack based on the movie version of the proton pack I wish to emulate. For example the 1984 movie version, ghostbusters afterlife version and the ghostbusters frozen empire version. I will also be able to change to the various video game modes and a MUSIC mode within this menu system. the music mode will allow me to play music tracks from the films. I mention these things just so you have an idea of the future for the code. for now I want to concentrate on the cyclotron lights code. as we will be creating many features for the proton pack which we will be running simultaneously the code should be non-blocking unless you can justify the decision to use code that would block other functions like delays. I will be using an led ring of 5v ws2812s for the cyclotron leds. These will be red by default for the 84 and afterlife version. we will discuss the frozen empire version later. first of all we will create the led effect for the 84 version of the pack. the ring has 40 leds in it. for the 84 version animation I want to create 4 cyclotron lights made up of a group of leds in a specific position on the ring. I want the use to be able to define the number of leds that make up each of the 4 lights and their location on the ring. the first light will fade up from 0 brightness to full brightness. once it reaches full brightness it will fade down again to zero brightness. the user should be able to define how long it takes for the full fade up and back down takes. then the 2nd defined cyclotron light should perform the same animation and so on. once the 4th light as completed the animation the code should loop back to the first light again and so on. the user should be able to define a gap between each light performing the animation but the default time should be zero, meaning once one light completes the next light should begin. the colour should be red. I would like you to inform me of the be pin on the esp32 to define for this job and explain to me why you believe this.
+
+2. I am receiving this error
+
+3. I am receiving this error: warning "The legacy RMT driver is deprecated, please use driver/rmt_tx.h and/or driver/rmt_rx.h
+
+4. which version of fasted should I be using?
+
+5. when creating my project in platformiowhich board should I select for the esp32-s3-devkitc-1?
+
+6. esp32-s3-devkitc-1 is missing, I can only select an 8mb version
+
+7. can you confirm for me the pin wiring?
+
+8. can you go back to this version of the code please:
+
+9. this looks good so far. can we change the number of leds that make up each of the 4 cyclotron lights to 5
+
+10. I wish to add a user defined variable that determines the direction of the lights animation. as the cyclotron lights are a ring this gives the viewer the impression that the lights are a circle and therefore the variable should correctly represent this as "CyclotronDirection" with the choice of Clockwise and AntiClockwise
+
+11. I would like to change the functionality of the variable for the lights direction. rather than a user defined option in the code I would like to make in a toggle switch. the toggle switch will be connected to a pin on the esp3p and you will again choose a pin you think is best for this job. again please explain your choice to me. the pin will be initially pulled high and this will represent a clockwise direction. when the pin is pulled low it will represent the direction anti-clockwise. the pin will be monitored in real time and when toggled the lights will change direction.
+
+12. are the PIN numbers different to the gpis numbers?
+
+13. can you please choose a different pin for the toggle switch
+
+14. would pin 17 be okay?
+
+15. that seems to be working well. thank you. I would now like to create an animation for the afterlife version of the proton pack. this animation will again be for the idle state. I want to assign a pin that again has a toggle switch on it and it is monitored at startup only. the pin will begin in the high state and this will represent the 1984 proton pack set of animations that we will be creating one by one. in a low state it will tell the code to run the afterlife animations group. the animation description for the afterlife cyclotron idle state is as such: using the fact that the already defined leds are a ring, the animation is a user defined number of leds being chased around the ring in the direction defined by the toggle switch switch_pin. we will start with a default number for these as 5. the leds should fade in a linear manner from a defined maximum value to a user defined minimum value in linear steps. the brightest led should represent the front of the chase and the front is defined by the pixel that leads in to the direction of rotation. lets try that and see if the effect is as I am imagining please
+
+16. I have this error src/main.cpp:64:9: error: 'run1984Animation' was not declared in this scope
+
+17. that seems to working now, can you add the ability to define the speed of the chase in a value that you feel will make sense to the user?
+
+18. when the afterlife animation reverse direction the direction of the fade should also switch ends of the group pf defined leds. does that make sense?
+
+19. can we also change the minBrightness to a default of 1
+
+20. can you add a comment for the user as to the max and min values of chaseSpeed
+
+21. further to this comment can you explain to the user what is faster and what is a slower value
+
+22. can we change the default values for afterlifeLedCount and chaseSpeed to 4
+
+23. I would like us to consider the present code as a milestone that we can come back to if the next experiment dont work well. what can we call this milestone to make it easier for me to instruct you to return the code to its present state?
+
+24. that's sounds good. I would like to try to modify the afterlife animation. I will do my best to explain what im trying to achieve and the visual effect I would like to see. if we were to take the leds defined as the cyclotronLights as the only leds that the user actually sees it is a bit wasteful to illuminate the leds on the ring that aren't seen. is there a way to skip illuminating the unseen leds BUT not effect the timing of the chase. so visually the viewer implies the hidden leds are there but the code does not waste power illuminating unseen leds. does that make sense?
+
+25. now can we add variables to modify the afterlife animation further. I want to create a variable that defines the actual number of physical leds in the ring and a virtual number of leds in the ring. the intention here is to allow the user to take advantage of the animation we have created for the afterlife pack. so as an example to what I mean. first I could have a ring of 40 leds, define the leds that make up each of the 4 cyclotron lights and only have those leds visible illuminate but the timing from one light finishing to the next starting implies the in-between leds exist. but as a second example, I could define that I have 20 leds total, and each cyclotron light is made up of adjacent groups of 5 leds. then I want to emulate the ring a different ring size, lets say a 40 led ring. as long as I define the number of physical leds and the total virtual led ring we should be able to create the same animation virtually as it would appear physically? does that sound possible?
+
+26. I have modified the physical number of leds to 20 and left the virtual number of leds at 40. I have also updated cyclotronLights appropriately. from what I visually see implies the virtual number of leds is having no effect as there is no gap in time where all leds are off to imply to the viewer that there the ring is larger than they can visually see
+
+27. lets change the default chase speed to 200 so the effect is easier to see visually be myself
+
+28. I am not seeing the animation I would expect. based on the variable we have defined such as fterlifeLedCount as 4 I would expect to see cyclotron light 1 illuminate one pixel, then two then three, then four, then the four shift as a group to the next pixel, then down to three, two, one pixel, a short gap of all off then the same for cyclotron group 2 etc. but im just seen a couple of leds light up in each group then move to the next group with little to no off gap? I hope that explains things well
+
+29. I want to switch back to Cyclotron_Animation_Milestone_1
+
+30. that was incorrect. please use this code
+
+31. as I develop this code I will be putting it on GitHub. I would like to develop this code in a professional manner so can you help me identify things I should do to to achieve this. for example I would like to make sure the code is user friendly and well commented throughout, that I create "how to" guides to help people configure the code to their needs, keep documentation like a wiring guide, add any additional files I should keep like a change log, all in the correct format. seal we take a moment to address this up to the current state of the code
+
+32. you are using the wrong code, please use this code, comment it thoroughly and correctly and going forward use it as the source for future changes:
+
+33. you keep using the wrong code, this is the code you should be using now
+
+34. you are still using the wrong code. can you explain how this is happening and how I can help you correct this?
+
+35. this code gives me this error:
+
+src/main.cpp:76:9: error: 'run1984Animation' was not declared in this scope
+
+36. can you list for me everything we have created today in this version of the code
+
+37. I have already created a GitHub repository and would like to push the code to it. could you explain how to do that
+
+38. with the esp32 what options do I have to allow someone to update the code of the device without having to open the prop and plug it in to a pc?
+
+39. of those 3 options which of them best caters to my needs, if my needs are define as: it takes up the least system resoursces like memory or cpu cycles, it will not interrupt the main functions that will be running in real time and will need to be able to interrupt quickly
+
+40. you misunderstood slightly,"minimal interruption to the main functions running in real time, and the ability to interrupt quickly" these are the requirements of the main code not the updates. the service that allows me to OTA the firmware should not cause the main functions to "minimal interruption to the main functions running in real time, and the ability to interrupt quickly"
+
+41. if the esp32 is at a different location to the registered wifi what will be the impact on the main electronics project codes efficiency in terms of power consumption or the additional constantly running in a place where it can never connect
+
+42. so could we have the code attempt 5 retries to connect to the registered wifi and if it hasn't connected after that the wifi attempts are stopped until the devices power is cycled?
+
+43. so now I would like to do a few things. integrate this code in to the proton pack code to allow the ability to ota, use a secrets file for the said and password of the wifi I wish it to connect to and implement maximum retries discussed. are there any other system efficiency or security concerns I should also consider?
+
+44. how do I now use this ota
+
+45. can I do this from platformio?
+
+46. lets add a ota password via the secrets file
+
+47. I also need to update platform.ini with the password location in secrets.h
+
+48. I keep getting [ERROR]: Authentication Failed
+
+49. the content of the platform.ini file doesn't look right for "--auth=your-OTA-password"
+
+50. platform.ini is still wrong "--auth" does not reference the variable we created in the secrets file for the otaPassword
+
+51. please xplain the wifi retries to me once more
+
+52. I meant you explain the max retries, sorry
+
+53. and what happens to this code once the max retries is exceeded?
+
+54. currently we are using a toggle switch, high/low, to determine which proton pack we are emulating but I actually want to emulate 3 different packs. the 1984 pack, the afterlife pack and the frozen empire pack. do you have any ideas how we could indicate which pack animations we want to run in a similar way physical toggle input?
+
+55. can you give me an example of a three position switch and how this would be wired?
+
+56. do you know of a switch that I could buy to do this job?
+
+57. for now lets achieve this with another toggle switch but I would like to change this later to the three position switch/voltage divider
+
+58. you have removed the SWITCH_PIN to achieve this and that is required for the animation direction fuctionality
+
+59. lets add an idle state animation for the frozen empire pack mode. to begin with I want it to be identical in functionality as the afterlife animation BUT it is coloured yellow
+
+60. that's a good start. now I want to change the frozen empire animation to be more like the film. the led lights should be creating the effect or imitating light created by sparks. so interns of colour the predominant hue should be a white/yellow light as if hot. can we try changing the colour to look more like that?
+
+61. can you change the SWITCH_PIN to pin 15
+
+62. we need to make some more changes to make this look like the movie version. the colour is much more white than yellow. think a hot white. it is probably half the speed of the afterlife chase speed defined in chaseSpeed. its is probably double the length as defined by the afterlifeLedCount value. we should probably have a user defined variable for the number of frozen empire leds used in the chase and default that to 8. the led that is at maximum brightness is in the middle of that user defined 8 and the fade goes out from the center of that row group and fades in the same amounts down to another user defined minimum value, we will make the default value as 5. does that make sense?
+
+63. can you please make the frozen empire chase colour a user defined value for me to test please
+
+64. I want to pause there for today. before I finish I want to update all of my files for gihub to make sure I keep them uptodate
+
+65. is that the correct formatting of the changeling for GitHub if we are appending and existing file?
+
+66. can we also update the configuration_guide, user_guide and wiring_guide files we created earlier please
+
+67. is there anything to add to the main GitHub readme file?
+
+68. and finally can we add comments to the main code to help with readability and configuration
