@@ -3,6 +3,6 @@
 .vscode/c_cpp_properties.json
 .vscode/launch.json
 .vscode/ipch
-.ChatGPT-ArduinoCodeGenerationNotes.txt
+ChatGPT-ArduinoCodeGenerationNotes.txt
 .include/secrets.h
-.upload_params.ini
+upload_params.ini
