@@ -24,16 +24,16 @@ CRGB cyclotronLidLights[NUM_LEDS_CYCLOTRON_LID];   // Second LED ring
 int cyclotronCakeLightsSpacingConfig[4][2] = {
     {0, 5},    // Starting position and length of the first light
     {11, 5},   // Second light
-    {21, 5},   // Third light
-    {31, 5}    // Fourth light
+    {22, 5},   // Third light
+    {34, 5}    // Fourth light
 };
 
 // Cyclotron light parameters for the second LED ring (1984 mode)
 int cyclotronLidLightsSpacingConfig[4][2] = {
-    {0, 5},    // Starting position and length of the first light
-    {10, 5},   // Second light
-    {20, 5},   // Third light
-    {30, 5}    // Fourth light
+    {4, 4},    // Starting position and length of the first light
+    {14, 4},   // Second light
+    {23, 4},   // Third light
+    {33, 4}    // Fourth light
 };
 
 int EightyFourVersionLightsFadeDuration = 1000; // Duration for fade up and down in milliseconds
@@ -48,9 +48,9 @@ enum AnimationMode { Mode1984, ModeAfterlife, ModeFrozenEmpire };
 AnimationMode animationMode = Mode1984; // Default animation mode
 
 // Enum for cyclotron lid state
-enum CyclotronLidState { CyclotronLidOn, CyclotronLidOff };
-CyclotronLidState lidState = CyclotronLidOff; // Initial state
-CyclotronLidState previousLidState = CyclotronLidOff; // Track the previous state
+enum CyclotronLidState { CyclotronLidOn, CyclotronCakeOn };
+CyclotronLidState lidState = CyclotronCakeOn; // Initial state
+CyclotronLidState previousLidState = CyclotronCakeOn; // Track the previous state
 
 // User-defined variables for Afterlife and Frozen Empire modes
 int afterlifeLedCount = 4;              // Number of LEDs in the chase for Afterlife mode
@@ -212,14 +212,14 @@ void updateLidState() {
         newLidState = CyclotronLidOn; // Switch LOW: CyclotronLidOn
         // Serial.println("CyclotronLidState: ON"); // Enable serial debugging
     } else {
-        newLidState = CyclotronLidOff; // Switch HIGH: CyclotronLidOff
+        newLidState = CyclotronCakeOn; // Switch HIGH: CyclotronCakeOn
         // Serial.println("CyclotronLidState: OFF"); // Enable serial debugging
     }
 
     if (newLidState != lidState) {
         previousLidState = lidState;
         lidState = newLidState;
-        clearLEDs((previousLidState == CyclotronLidOn) ? cyclotronCakeLights : cyclotronLidLights, (previousLidState == CyclotronLidOn) ? NUM_LEDS_CYCLOTRON_CAKE : NUM_LEDS_CYCLOTRON_LID);
+        clearLEDs((previousLidState == CyclotronLidOn) ? cyclotronLidLights : cyclotronCakeLights, (previousLidState == CyclotronLidOn) ? NUM_LEDS_CYCLOTRON_LID : NUM_LEDS_CYCLOTRON_CAKE);
     }
 }
 
@@ -245,11 +245,11 @@ void updateAnimationMode() {
 
 void runMainFunctions() {
     if (animationMode == Mode1984) {
-        run1984Animation((lidState == CyclotronLidOn) ? cyclotronCakeLights : cyclotronLidLights, (lidState == CyclotronLidOn) ? NUM_LEDS_CYCLOTRON_CAKE : NUM_LEDS_CYCLOTRON_LID, (lidState == CyclotronLidOn) ? cyclotronCakeLightsSpacingConfig : cyclotronLidLightsSpacingConfig);
+        run1984Animation((lidState == CyclotronLidOn) ? cyclotronLidLights : cyclotronCakeLights, (lidState == CyclotronLidOn) ? NUM_LEDS_CYCLOTRON_LID : NUM_LEDS_CYCLOTRON_CAKE, (lidState == CyclotronLidOn) ? cyclotronLidLightsSpacingConfig : cyclotronCakeLightsSpacingConfig);
     } else if (animationMode == ModeAfterlife) {
-        runAfterlifeAnimation((lidState == CyclotronLidOn) ? cyclotronCakeLights : cyclotronLidLights, (lidState == CyclotronLidOn) ? NUM_LEDS_CYCLOTRON_CAKE : NUM_LEDS_CYCLOTRON_LID);
+        runAfterlifeAnimation((lidState == CyclotronLidOn) ? cyclotronLidLights : cyclotronCakeLights, (lidState == CyclotronLidOn) ? NUM_LEDS_CYCLOTRON_LID : NUM_LEDS_CYCLOTRON_CAKE);
     } else if (animationMode == ModeFrozenEmpire) {
-        runFrozenEmpireAnimation((lidState == CyclotronLidOn) ? cyclotronCakeLights : cyclotronLidLights, (lidState == CyclotronLidOn) ? NUM_LEDS_CYCLOTRON_CAKE : NUM_LEDS_CYCLOTRON_LID);
+        runFrozenEmpireAnimation((lidState == CyclotronLidOn) ? cyclotronLidLights : cyclotronCakeLights, (lidState == CyclotronLidOn) ? NUM_LEDS_CYCLOTRON_LID : NUM_LEDS_CYCLOTRON_CAKE);
     }
 
     FastLED.show();

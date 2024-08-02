@@ -7,7 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 # Changelog
 
-## [1.0.2] - 2024-07-27
+## [1.1.3] - 2024-08-02
+
+### Added
+- N/A
+
+### Changed
+- Updated `cyclotronCakeLightsSpacingConfig` and `cyclotronLidLightsSpacingConfig` values to match the new LED counts and desired spacing.
+- Changed logic for `LID_STATE_PIN`: LOW = `CyclotronLidOn`, HIGH = `CyclotronCakeOn`.
+
+### Fixed
+- N/A
+
+## [1.1.2] - 2024-07-27
 ### Added
 - Added functionality to select animation mode (1984, Afterlife, Frozen Empire) using a voltage divider on the analog input pin.
 - Added a new CyclotronLidState to switch between two LED rings for animations.
