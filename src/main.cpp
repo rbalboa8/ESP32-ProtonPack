@@ -5,19 +5,20 @@
 #include "secrets.h" // Include the secrets file for Wi-Fi and OTA credentials
 
 // Pin definitions
-#define CYCLOTRON_CAKE_LED_PIN 19    // GPIO 19 for the first LED ring data line
+#define CYCLOTRON_CAKE_LED_PIN 19    // GPIO 19 for the LED ring data line
 #define CYCLOTRON_LID_LED_PIN 18     // GPIO 18 for the second LED ring data line
 #define CYCLOTRON_DIRECTION_SWITCH_PIN 15 // GPIO 15 for the toggle switch to control direction
 #define LID_STATE_PIN 14             // GPIO 14 for the toggle switch to control cyclotron lid state
 #define MODE_SELECT_PIN 17           // GPIO 17 for the analog mode select pin
 
-#define NUM_LEDS_CYCLOTRON_CAKE 45   // Total number of LEDs for the first ring
+#define NUM_LEDS_CYCLOTRON_CAKE 45   // Total number of LEDs for the first ring excluding the power cell
 #define NUM_LEDS_CYCLOTRON_LID 40    // Total number of LEDs for the second ring
+#define NUM_LEDS_POWERCELL 16        // Number of LEDs for the power cell
 #define BRIGHTNESS 255               // Maximum brightness of LEDs
 #define LED_TYPE WS2812B             // Type of LED strip
 #define COLOR_ORDER GRB              // Color order of the LED strip
 
-CRGB cyclotronCakeLights[NUM_LEDS_CYCLOTRON_CAKE]; // First LED ring
+CRGB cyclotronCakeLights[NUM_LEDS_CYCLOTRON_CAKE + NUM_LEDS_POWERCELL]; // First LED ring + power cell
 CRGB cyclotronLidLights[NUM_LEDS_CYCLOTRON_LID];   // Second LED ring
 
 // Cyclotron light parameters for the first LED ring (1984 mode)
@@ -38,6 +39,7 @@ int cyclotronLidLightsSpacingConfig[4][2] = {
 
 int EightyFourVersionLightsFadeDuration = 1000; // Duration for fade up and down in milliseconds
 int EightyFourVersionLightsGapDuration = 0;     // Duration for gap between lights in milliseconds
+int EightyFourVersionBootFadeDuration = 2000;   // Duration for boot fade up in milliseconds
 
 // Enum for cyclotron direction
 enum CyclotronDirection { Clockwise, AntiClockwise };
@@ -52,6 +54,10 @@ enum CyclotronLidState { CyclotronLidOn, CyclotronCakeOn };
 CyclotronLidState lidState = CyclotronCakeOn; // Initial state
 CyclotronLidState previousLidState = CyclotronCakeOn; // Track the previous state
 
+// Enum for proton pack states
+enum ProtonPackState { Booting, Idle, Firing, Overheating, Shutdown };
+ProtonPackState currentState = Booting; // Initial state
+
 // User-defined variables for Afterlife and Frozen Empire modes
 int afterlifeLedCount = 4;              // Number of LEDs in the chase for Afterlife mode
 int maxBrightness = 255;                // Maximum brightness
@@ -62,6 +68,10 @@ int frozenEmpireLedCount = 8;           // Default number of LEDs in the chase f
 int frozenEmpireMinBrightness = 5;      // Default minimum brightness for Frozen Empire mode
 int frozenEmpireChaseSpeed = 8;         // Default chase speed for Frozen Empire mode (double the afterlife speed)
 CRGB frozenEmpireColor = CRGB::White;   // Default color for Frozen Empire mode
+
+// User-defined variables for Power Cell mode
+int powerCellChaseSpeed = 100;          // Default chase speed in milliseconds per step
+int powerCellGapDuration = 500;         // Default gap duration between chase cycles in milliseconds
 
 const int maxRetries = 5; // Maximum number of retries for Wi-Fi connection
 int connectionAttempts = 0;
@@ -81,10 +91,14 @@ void setupOTA();
 void run1984Animation(CRGB* leds, int numLeds, int lightsConfig[][2]);
 void runAfterlifeAnimation(CRGB* leds, int numLeds);
 void runFrozenEmpireAnimation(CRGB* leds, int numLeds);
+void runPowerCellAnimation(CRGB* leds, int start, int numLeds);
 void runMainFunctions();
 void updateLidState();
 void clearLEDs(CRGB* leds, int numLeds);
 void updateAnimationMode();
+void updateProtonPackState();
+void runBootingAnimation();
+void run1984BootAnimation(CRGB* leds, int numLeds, int lightsConfig[][2]);
 
 void setup() {
     Serial.begin(115200); // Enable serial debugging
@@ -95,7 +109,7 @@ void setup() {
     pinMode(LID_STATE_PIN, INPUT_PULLUP);
 
     // Initialize FastLED
-    FastLED.addLeds<LED_TYPE, CYCLOTRON_CAKE_LED_PIN, COLOR_ORDER>(cyclotronCakeLights, NUM_LEDS_CYCLOTRON_CAKE).setCorrection(TypicalLEDStrip);
+    FastLED.addLeds<LED_TYPE, CYCLOTRON_CAKE_LED_PIN, COLOR_ORDER>(cyclotronCakeLights, NUM_LEDS_CYCLOTRON_CAKE + NUM_LEDS_POWERCELL).setCorrection(TypicalLEDStrip);
     FastLED.addLeds<LED_TYPE, CYCLOTRON_LID_LED_PIN, COLOR_ORDER>(cyclotronLidLights, NUM_LEDS_CYCLOTRON_LID).setCorrection(TypicalLEDStrip);
     FastLED.setBrightness(BRIGHTNESS);
 
@@ -105,6 +119,9 @@ void setup() {
 
     // Read initial mode switch state
     updateAnimationMode();
+
+    // Set initial state
+    currentState = Booting;
 }
 
 void loop() {
@@ -129,6 +146,9 @@ void loop() {
     } else if (WiFi.status() == WL_CONNECTED) {
         ArduinoOTA.handle(); // Handle OTA only when Wi-Fi is connected
     }
+
+    // Update the proton pack state
+    updateProtonPackState();
 
     // Run the selected animation
     runMainFunctions();
@@ -210,10 +230,10 @@ void updateLidState() {
     // Update the lid state based on the real-time pin reading
     if (digitalRead(LID_STATE_PIN) == LOW) {
         newLidState = CyclotronLidOn; // Switch LOW: CyclotronLidOn
-        // Serial.println("CyclotronLidState: ON"); // Enable serial debugging
+         // Serial.println("CyclotronLidState: ON"); // Enable serial debugging
     } else {
         newLidState = CyclotronCakeOn; // Switch HIGH: CyclotronCakeOn
-        // Serial.println("CyclotronLidState: OFF"); // Enable serial debugging
+         // Serial.println("CyclotronLidState: OFF"); // Enable serial debugging
     }
 
     if (newLidState != lidState) {
@@ -243,16 +263,70 @@ void updateAnimationMode() {
     // Serial.println(animationMode);    // Debugging line
 }
 
+void updateProtonPackState() {
+    // Here you can add logic to change the proton pack state based on inputs or conditions
+    // For now, it will transition from Booting to Idle after a delay
+    static unsigned long bootStartTime = millis();
+    unsigned long currentMillis = millis();
+
+    if (currentState == Booting && currentMillis - bootStartTime > 5000) { // 5 seconds booting time
+        currentState = Idle;
+    }
+}
+
 void runMainFunctions() {
-    if (animationMode == Mode1984) {
-        run1984Animation((lidState == CyclotronLidOn) ? cyclotronLidLights : cyclotronCakeLights, (lidState == CyclotronLidOn) ? NUM_LEDS_CYCLOTRON_LID : NUM_LEDS_CYCLOTRON_CAKE, (lidState == CyclotronLidOn) ? cyclotronLidLightsSpacingConfig : cyclotronCakeLightsSpacingConfig);
-    } else if (animationMode == ModeAfterlife) {
-        runAfterlifeAnimation((lidState == CyclotronLidOn) ? cyclotronLidLights : cyclotronCakeLights, (lidState == CyclotronLidOn) ? NUM_LEDS_CYCLOTRON_LID : NUM_LEDS_CYCLOTRON_CAKE);
-    } else if (animationMode == ModeFrozenEmpire) {
-        runFrozenEmpireAnimation((lidState == CyclotronLidOn) ? cyclotronLidLights : cyclotronCakeLights, (lidState == CyclotronLidOn) ? NUM_LEDS_CYCLOTRON_LID : NUM_LEDS_CYCLOTRON_CAKE);
+    switch (currentState) {
+        case Booting:
+            runBootingAnimation();
+            break;
+        case Idle:
+            if (animationMode == Mode1984) {
+                run1984Animation((lidState == CyclotronLidOn) ? cyclotronLidLights : cyclotronCakeLights, (lidState == CyclotronLidOn) ? NUM_LEDS_CYCLOTRON_LID : NUM_LEDS_CYCLOTRON_CAKE, (lidState == CyclotronLidOn) ? cyclotronLidLightsSpacingConfig : cyclotronCakeLightsSpacingConfig);
+            } else if (animationMode == ModeAfterlife) {
+                runAfterlifeAnimation((lidState == CyclotronLidOn) ? cyclotronLidLights : cyclotronCakeLights, (lidState == CyclotronLidOn) ? NUM_LEDS_CYCLOTRON_LID : NUM_LEDS_CYCLOTRON_CAKE);
+            } else if (animationMode == ModeFrozenEmpire) {
+                runFrozenEmpireAnimation((lidState == CyclotronLidOn) ? cyclotronLidLights : cyclotronCakeLights, (lidState == CyclotronLidOn) ? NUM_LEDS_CYCLOTRON_LID : NUM_LEDS_CYCLOTRON_CAKE);
+            }
+            runPowerCellAnimation(cyclotronCakeLights, NUM_LEDS_CYCLOTRON_CAKE, NUM_LEDS_POWERCELL);
+            break;
+        // Add cases for other states like Firing, Overheating, Shutdown as needed
+        default:
+            break;
     }
 
     FastLED.show();
+}
+
+void runBootingAnimation() {
+    if (animationMode == Mode1984) {
+        run1984BootAnimation((lidState == CyclotronLidOn) ? cyclotronLidLights : cyclotronCakeLights, (lidState == CyclotronLidOn) ? NUM_LEDS_CYCLOTRON_LID : NUM_LEDS_CYCLOTRON_CAKE, (lidState == CyclotronLidOn) ? cyclotronLidLightsSpacingConfig : cyclotronCakeLightsSpacingConfig);
+    }
+    // Add booting animations for other modes as needed
+    runPowerCellAnimation(cyclotronCakeLights, NUM_LEDS_CYCLOTRON_CAKE, NUM_LEDS_POWERCELL);
+}
+
+void run1984BootAnimation(CRGB* leds, int numLeds, int lightsConfig[][2]) {
+    unsigned long currentMillis = millis();
+    static unsigned long startMillis = millis();
+    unsigned long elapsedMillis = currentMillis - startMillis;
+
+    if (elapsedMillis < EightyFourVersionBootFadeDuration) {
+        float progress = (float)elapsedMillis / EightyFourVersionBootFadeDuration;
+        int brightness = (int)(progress * 255);
+
+        for (int i = 0; i < 4; i++) { // Restrict to the 4 defined cyclotron lights
+            int startPos = lightsConfig[i][0];
+            int length = lightsConfig[i][1];
+            for (int j = startPos; j < startPos + length; j++) {
+                leds[j] = CRGB::Red;
+                leds[j].fadeLightBy(255 - brightness);
+            }
+        }
+    } else {
+        // Clear LEDs and switch to idle state
+        clearLEDs(leds, numLeds);
+        currentState = Idle;
+    }
 }
 
 void run1984Animation(CRGB* leds, int numLeds, int lightsConfig[][2]) {
@@ -369,6 +443,39 @@ void runFrozenEmpireAnimation(CRGB* leds, int numLeds) {
         // Use user-defined color for sparks effect
         leds[pos] = frozenEmpireColor;
         leds[pos].fadeLightBy(255 - brightness);
+    }
+}
+
+void runPowerCellAnimation(CRGB* leds, int start, int numLeds) {
+    static unsigned long lastUpdate = 0;
+    static int currentLed = 0;
+    static bool chaseCompleted = false;
+    unsigned long currentMillis = millis();
+
+    if (chaseCompleted) {
+        // Clear the power cell LEDs
+        clearLEDs(&leds[start], numLeds);
+        chaseCompleted = false;
+        currentLed = 0;
+        lastUpdate = currentMillis + powerCellGapDuration; // Add gap duration after the chase completes
+    }
+
+    if (currentMillis - lastUpdate > powerCellChaseSpeed) {
+        lastUpdate = currentMillis;
+
+        if (currentLed < numLeds) {
+            leds[start + currentLed] = CRGB::Blue; // Turn on the current LED
+            currentLed++;
+        } else {
+            // Ensure all LEDs are off briefly before restarting the chase
+            if (currentLed == numLeds) {
+                clearLEDs(&leds[start], numLeds);
+                currentLed++;
+                lastUpdate = currentMillis; // Add a brief delay
+            } else {
+                chaseCompleted = true;
+            }
+        }
     }
 }
 
